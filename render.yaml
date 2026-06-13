@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: mindease-nlp
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port $PORT"
+    rootDir: nlp-service
+    envVars:
+      - key: PORT
+        value: 8000
+
+  - type: web
+    name: mindease-server
+    env: node
+    buildCommand: "npm install"
+    startCommand: "npm start"
+    rootDir: server
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: NODE_ENV
+        value: production
+      - key: NLP_SERVICE_URL
+        fromService:
+          name: mindease-nlp
+          type: web
+          property: url
+      # Add other env vars directly in the Render dashboard:
+      # MONGO_URI, JWT_SECRET, CLIENT_URL, etc.
