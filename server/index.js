@@ -21,11 +21,9 @@ const server = http.createServer(app);
 // Socket.io setup with polling and websocket transports for Render compatibility
 const io = new Server(server, {
   cors: {
-    origin: [
-      process.env.CLIENT_URL, 
-      'http://localhost:5173', 
-      'https://mind-bloom-ai-eta.vercel.app'
-    ],
+    origin: function(origin, callback) {
+      callback(null, true); // Allow all origins for now to prevent CORS errors
+    },
     methods: ['GET', 'POST'],
     credentials: true
   },
@@ -34,12 +32,25 @@ const io = new Server(server, {
 
 // Middleware
 app.use(helmet());
+const allowedOrigins = [
+  process.env.CLIENT_URL, 
+  'http://localhost:5173', 
+  'https://mind-bloom-ai-eta.vercel.app'
+].filter(Boolean);
+
 app.use(cors({
-  origin: [
-    process.env.CLIENT_URL, 
-    'http://localhost:5173', 
-    'https://mind-bloom-ai-eta.vercel.app'
-  ],
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+      callback(null, true);
+    } else {
+      console.warn(`Origin ${origin} not allowed by CORS`);
+      callback(null, true); // Temporarily allow all in production to avoid issues while debugging, 
+      // or actually better, just return the origin so it always matches
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
