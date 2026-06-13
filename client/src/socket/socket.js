@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client';
 
-const URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+const isProd = import.meta.env.PROD;
+const URL = import.meta.env.VITE_SOCKET_URL || (isProd ? 'https://mindbloom-ai-b0ml.onrender.com' : 'http://localhost:5000');
 
 export const socket = io(URL, {
   autoConnect: false,
