@@ -18,17 +18,14 @@ connectDB();
 const app = express();
 const server = http.createServer(app);
 
-// Allowed origins for CORS
-const allowedOrigins = [
-  'http://localhost:5173',
-  'https://mind-bloom-hijoe8vi6-2303a52324s-projects.vercel.app',
-  process.env.CLIENT_URL
-].filter(Boolean);
-
 // Socket.io setup with polling and websocket transports for Render compatibility
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: [
+      process.env.CLIENT_URL, 
+      'http://localhost:5173', 
+      'https://mind-bloom-ai-eta.vercel.app'
+    ],
     methods: ['GET', 'POST'],
     credentials: true
   },
@@ -38,7 +35,11 @@ const io = new Server(server, {
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: allowedOrigins,
+  origin: [
+    process.env.CLIENT_URL, 
+    'http://localhost:5173', 
+    'https://mind-bloom-ai-eta.vercel.app'
+  ],
   credentials: true
 }));
 app.use(express.json());
