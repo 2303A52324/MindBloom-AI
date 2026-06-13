@@ -48,10 +48,36 @@ RESPONSES = {
     ]
 }
 
-def generate_response(intent: str, is_crisis: bool):
+def generate_response(intent: str, is_crisis: bool, expression: str = None):
     if is_crisis:
         return random.choice(RESPONSES['crisis'])
         
+    # Handle facial expressions dynamically for generic conversations
+    if expression and expression in ['sad', 'angry', 'fearful', 'happy', 'surprised']:
+        if intent == 'greeting':
+            if expression == 'sad':
+                return "Hello. I can see in your expression that you're feeling a bit down today. I'm here to listen. What's going on?"
+            elif expression == 'angry':
+                return "Hi there. I notice you look a bit upset or frustrated. Is there something you'd like to vent about? I'm here."
+            elif expression == 'fearful':
+                return "Hello. You look a bit anxious or worried. Take a deep breath—you're in a safe space. What's on your mind?"
+            elif expression == 'happy':
+                return "Hi! It is wonderful to see a smile on your face today. How can I support your positive momentum?"
+            elif expression == 'surprised':
+                return "Hello! You look surprised. Did something unexpected happen? Tell me all about it!"
+        
+        elif intent == 'unknown':
+            if expression == 'sad':
+                return "I hear you, and I notice you look sad. It's okay to feel down. Would you like to tell me more about what's causing these feelings?"
+            elif expression == 'angry':
+                return "I notice you look a bit angry. Anger is a natural emotion. What do you think is triggering this right now?"
+            elif expression == 'fearful':
+                return "I can see some tension or fear in your face. Let's take it slow. What's making you feel uneasy?"
+            elif expression == 'happy':
+                return "It's great to see you looking happy as you share this! Thank you for sharing your positive energy with me."
+            elif expression == 'surprised':
+                return "I notice a look of surprise on your face. What part of this situation surprised you the most?"
+
     if intent in RESPONSES:
         return random.choice(RESPONSES[intent])
         

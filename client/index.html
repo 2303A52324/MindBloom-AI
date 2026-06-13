@@ -5,6 +5,38 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>client</title>
+    <script>
+      window.addEventListener('error', function(e) {
+        showDebugError(e.message + ' at ' + e.filename + ':' + e.lineno);
+      });
+      window.addEventListener('unhandledrejection', function(e) {
+        showDebugError('Unhandled Promise Rejection: ' + e.reason);
+      });
+      function showDebugError(msg) {
+        var div = document.getElementById('debug-console-errors');
+        if (!div) {
+          div = document.createElement('div');
+          div.id = 'debug-console-errors';
+          div.style.position = 'fixed';
+          div.style.bottom = '10px';
+          div.style.left = '10px';
+          div.style.zIndex = '99999';
+          div.style.background = 'rgba(255, 0, 0, 0.95)';
+          div.style.color = 'white';
+          div.style.padding = '12px';
+          div.style.borderRadius = '8px';
+          div.style.maxWidth = '90%';
+          div.style.maxHeight = '200px';
+          div.style.overflowY = 'auto';
+          div.style.fontFamily = 'monospace';
+          div.style.fontSize = '12px';
+          div.style.whiteSpace = 'pre-wrap';
+          div.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
+          document.body.appendChild(div);
+        }
+        div.innerText += '\n• ' + msg;
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

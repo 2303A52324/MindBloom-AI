@@ -25,6 +25,7 @@ app.add_middleware(
 
 class MessageRequest(BaseModel):
     text: str
+    expression: str | None = None
 
 @app.get("/health")
 def health_check():
@@ -33,6 +34,7 @@ def health_check():
 @app.post("/analyze")
 def analyze_message(req: MessageRequest):
     text = req.text
+    expression = req.expression
     
     # Run NLP pipeline
     sentiment_data = analyze_sentiment(text)
@@ -40,8 +42,8 @@ def analyze_message(req: MessageRequest):
     crisis_data = analyze_crisis(text)
     emotion, emotion_confidence = analyze_emotion(text)
     
-    # Generate bot response based on intent and crisis status
-    bot_response = generate_response(intent, crisis_data["is_crisis"])
+    # Generate bot response based on intent, crisis status, and facial expression
+    bot_response = generate_response(intent, crisis_data["is_crisis"], expression)
     
     return {
         "sentiment": sentiment_data["sentiment"],

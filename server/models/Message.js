@@ -24,6 +24,10 @@ const MessageSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  expression: {
+    type: String,
+    default: null
+  },
   nlpData: {
     sentiment: String,
     sentimentScore: Number,

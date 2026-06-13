@@ -6,7 +6,8 @@ import { socket } from '../socket/socket';
 import MessageBubble from '../components/MessageBubble';
 import TypingIndicator from '../components/TypingIndicator';
 import CrisisBanner from '../components/CrisisBanner';
-import { Send, LogOut, LayoutDashboard, Menu, X, Heart } from 'lucide-react';
+import { Send, LogOut, LayoutDashboard, Menu, X, Heart, Camera, CameraOff } from 'lucide-react';
+import CameraCapture from '../components/CameraCapture';
 
 const Chat = () => {
   const { user, logout } = useContext(AuthContext);
@@ -14,6 +15,11 @@ const Chat = () => {
   const [inputText, setInputText] = useState('');
   const [sessionId, setSessionId] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [currentExpression, setCurrentExpression] = useState('neutral');
+  const lastProactiveExpression = useRef(null);
+  const consecutiveCount = useRef(0);
+  const nextProactiveAllowedTime = useRef(0);
   
   const { 
     messages, 
@@ -69,8 +75,38 @@ const Chat = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (inputText.trim()) {
-      sendMessage(inputText);
+      sendMessage(inputText, cameraActive ? currentExpression : null);
       setInputText('');
+    }
+  };
+
+  const handleExpressionDetected = (exp) => {
+    setCurrentExpression(exp);
+    
+    if (exp === 'neutral' || !sessionId) {
+      consecutiveCount.current = 0;
+      return;
+    }
+    
+    const now = Date.now();
+    if (now < nextProactiveAllowedTime.current) {
+      return; // In cool-down
+    }
+    
+    if (lastProactiveExpression.current === exp) {
+      consecutiveCount.current++;
+      if (consecutiveCount.current >= 3) { // 3 consecutive frames (~1.8 seconds)
+        nextProactiveAllowedTime.current = now + 15000; // 15s cool-down
+        consecutiveCount.current = 0;
+        
+        socket.emit('user_expression_proactive', { 
+          sessionId, 
+          expression: exp 
+        });
+      }
+    } else {
+      lastProactiveExpression.current = exp;
+      consecutiveCount.current = 1;
     }
   };
 
@@ -150,31 +186,64 @@ const Chat = () => {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative">
         {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 h-16 flex items-center px-4 shrink-0 z-10 sticky top-0">
-          <button className="md:hidden p-2 -ml-2 mr-2 text-slate-500 rounded-lg hover:bg-slate-100" onClick={() => setSidebarOpen(true)}>
-            <Menu className="w-6 h-6" />
-          </button>
-          
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                <Heart className="w-5 h-5 text-indigo-600" />
+        <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 h-16 flex items-center px-4 shrink-0 z-10 sticky top-0 justify-between">
+          <div className="flex items-center">
+            <button className="md:hidden p-2 -ml-2 mr-2 text-slate-500 rounded-lg hover:bg-slate-100" onClick={() => setSidebarOpen(true)}>
+              <Menu className="w-6 h-6" />
+            </button>
+            
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                  <Heart className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
               </div>
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-            </div>
-            <div>
-              <h2 className="font-semibold text-slate-800 leading-tight">MindBloom AI</h2>
-              <p className="text-xs text-slate-500 leading-tight">Always here to listen</p>
+              <div>
+                <h2 className="font-semibold text-slate-800 leading-tight">MindBloom AI</h2>
+                <p className="text-xs text-slate-500 leading-tight">Always here to listen</p>
+              </div>
             </div>
           </div>
+
+          <button
+            onClick={() => setCameraActive(!cameraActive)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-sm transition-all ${
+              cameraActive
+                ? 'bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100'
+                : 'bg-indigo-50 border-indigo-100 text-indigo-700 hover:bg-indigo-100'
+            }`}
+          >
+            {cameraActive ? (
+              <>
+                <CameraOff className="w-3.5 h-3.5" />
+                <span>Disable Face AI</span>
+              </>
+            ) : (
+              <>
+                <Camera className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Enable Face AI</span>
+              </>
+            )}
+          </button>
         </header>
 
         {/* Error Toast */}
         {error && (
           <div className="bg-red-50 text-red-600 px-4 py-2 text-sm font-medium text-center border-b border-red-100">
             {error}
+          </div>
+        )}
+
+        {/* Floating Camera Preview (Always visible, never scrolls!) */}
+        {cameraActive && (
+          <div className="absolute top-20 right-6 z-20 w-[240px] md:w-[280px]">
+            <CameraCapture 
+              isActive={cameraActive}
+              onExpressionDetected={handleExpressionDetected}
+            />
           </div>
         )}
 

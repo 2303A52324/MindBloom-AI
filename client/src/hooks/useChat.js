@@ -55,7 +55,7 @@ export const useChat = (sessionId) => {
     }
   }, [sessionId]);
 
-  const sendMessage = useCallback((text) => {
+  const sendMessage = useCallback((text, expression = null) => {
     if (!text.trim() || !sessionId) return;
     
     // Optimistically update UI
@@ -63,13 +63,14 @@ export const useChat = (sessionId) => {
       _id: Date.now().toString(),
       sender: 'user',
       text: text.trim(),
+      expression: expression,
       createdAt: new Date().toISOString()
     };
     
     setMessages((prev) => [...prev, tempMsg]);
     scrollToBottom();
     
-    socket.emit('user_message', { sessionId, text });
+    socket.emit('user_message', { sessionId, text, expression });
   }, [sessionId]);
 
   return {

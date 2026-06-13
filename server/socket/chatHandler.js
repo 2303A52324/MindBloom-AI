@@ -17,7 +17,7 @@ const handleChatEvents = (io, socket) => {
       });
   });
 
-  socket.on('user_message', ({ sessionId, text }) => {
+  socket.on('user_message', ({ sessionId, text, expression }) => {
     if (!text || text.trim() === '') return;
 
     // 1. Save user message
@@ -25,7 +25,8 @@ const handleChatEvents = (io, socket) => {
       sessionId,
       userId: socket.user.id,
       sender: 'user',
-      text: text.trim()
+      text: text.trim(),
+      expression: expression || null
     });
 
     userMessage.save()
@@ -37,7 +38,10 @@ const handleChatEvents = (io, socket) => {
         socket.emit('bot_typing', true);
 
         const nlpUrl = process.env.NLP_SERVICE_URL || 'http://localhost:8000';
-        return axios.post(`${nlpUrl}/analyze`, { text: text.trim() })
+        return axios.post(`${nlpUrl}/analyze`, { 
+          text: text.trim(),
+          expression: expression || null
+        })
           .then((response) => {
             const nlpData = response.data;
             
@@ -82,6 +86,47 @@ const handleChatEvents = (io, socket) => {
       .catch((err) => {
         console.error('Error saving user message:', err);
         socket.emit('error_message', 'Failed to send message');
+      });
+  });
+
+  socket.on('user_expression_proactive', ({ sessionId, expression }) => {
+    if (!expression || expression === 'neutral' || !sessionId) return;
+
+    socket.emit('bot_typing', true);
+
+    const nlpUrl = process.env.NLP_SERVICE_URL || 'http://localhost:8000';
+    axios.post(`${nlpUrl}/analyze`, { 
+      text: "", 
+      expression: expression 
+    })
+      .then((response) => {
+        const nlpData = response.data;
+        
+        // Prepare bot message reacting to expression
+        const botMessage = new Message({
+          sessionId,
+          userId: socket.user.id,
+          sender: 'bot',
+          text: nlpData.bot_response,
+          isCrisis: false,
+          nlpData: {
+            sentiment: nlpData.sentiment,
+            sentimentScore: nlpData.sentiment_score,
+            emotion: expression,
+            intent: 'proactive_expression',
+            crisisScore: 0,
+            crisisTier: 'none'
+          }
+        });
+
+        return botMessage.save().then((savedBotMessage) => {
+          socket.emit('bot_typing', false);
+          socket.emit('bot_message', savedBotMessage);
+        });
+      })
+      .catch((err) => {
+        console.error('Proactive Expression NLP Error:', err.message);
+        socket.emit('bot_typing', false);
       });
   });
 
